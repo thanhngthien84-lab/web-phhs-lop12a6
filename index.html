@@ -204,7 +204,7 @@
         const menuItems = [
             { id: 'tong-quan', icon: 'ph-squares-four', label: 'Trang chủ' },
             { id: 'hoc-sinh', icon: 'ph-users', label: 'Học sinh' },
-            { id: 'diem-hoc-tap', icon: 'ph-chart-line-up', label: 'Điểm học tập' },
+            { id: 'diem-hoc-tap', icon: 'ph-chart-line-up', label: 'Học tập' },
             { id: 'thoi-khoa-bieu', icon: 'ph-calendar-list', label: 'Thời khóa biểu' },
             { id: 'so-do-lop', icon: 'ph-grid-four', label: 'Sơ đồ lớp' },
             { id: 'doi-qua', icon: 'ph-gift', label: 'Quà tặng' },
@@ -1367,7 +1367,7 @@ function renderViewScoreEntry() {
         '<section class="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-5 md:p-7">' +
         '<div class="flex flex-col gap-5"><div class="flex items-center gap-3">' +
         '<div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center"><i class="ph-fill ph-chart-line-up text-2xl"></i></div>' +
-        '<div><h2 class="text-2xl md:text-3xl font-black text-slate-800">Điểm học tập</h2><p class="text-sm text-slate-500 font-medium">Nhập nhanh điểm theo bài kiểm tra và lưu trực tiếp lên Google Sheet.</p></div></div>' +
+        '<div><h2 class="text-2xl md:text-3xl font-black text-slate-800">Học tập</h2><p class="text-sm text-slate-500 font-medium">Nhập nhanh điểm theo bài kiểm tra và lưu trực tiếp lên Google Sheet.</p></div></div>' +
         '<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full"><button onclick="openConnectedGoogleSheet()" class="px-4 py-3 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 font-bold text-sm flex items-center justify-center gap-2"><i class="ph-bold ph-table"></i> Mở Google Sheet</button>' +
         '<button onclick="loadScoreBookFromGoogle()" ' + (loading ? "disabled" : "") + ' class="px-4 py-3 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-60"><i class="ph-bold ph-arrows-clockwise ' + (loading ? "animate-spin" : "") + '"></i> Tải điểm mới nhất</button>' +
         '<button onclick="openNewScoreTestModal()" class="px-4 py-3 rounded-xl bg-[#0f172a] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md"><i class="ph-bold ph-plus-circle"></i> Tạo bài kiểm tra</button></div></div>' +
