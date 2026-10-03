@@ -5305,19 +5305,19 @@ window.openEditGroupModal = function(id) {
                 const callback = "adminCheck_" + Date.now() + "_" + Math.floor(Math.random() * 1e8);
                 const script = document.createElement("script");
                 let finished = false;
-                const timer = setTimeout(() => finish(null), 15000);
-                function finish(response) {
+                const timer = setTimeout(() => finish(null, "timeout"), 45000);
+                function finish(response, failureReason) {
                     if (finished) return;
                     finished = true;
                     clearTimeout(timer);
                     script.remove();
                     window[callback] = () => {};
                     setTimeout(() => delete window[callback], 60000);
-                    if (!response) reject(new Error("Chưa kiểm tra được mã do kết nối chậm. Vui lòng thử lại."));
+                    if (!response) reject(new Error(failureReason === "network" ? "Không tải được phản hồi xác thực từ Google. Hãy kiểm tra mạng hoặc thử mở web bằng Chrome/Safari." : "Google chưa phản hồi sau 45 giây. Vui lòng kiểm tra mạng và thử lại."));
                     else resolve(response);
                 }
-                window[callback] = finish;
-                script.onerror = () => finish(null);
+                window[callback] = response => finish(response);
+                script.onerror = () => finish(null, "network");
                 script.src = GOOGLE_SHEET_API_URL + "?" + new URLSearchParams({mode, adminKey:key, callback});
                 document.head.appendChild(script);
             });
@@ -8536,7 +8536,7 @@ window.renderLoginScreen = function() {
             if (!key) { showToast("Vui lòng nhập mã quản trị Apps Script.", "error"); return; }
             try {
                 const result = await requestAdminKeyCheck(key);
-                if (!result || !result.ok) throw new Error(result && result.error || "Mã quản trị không chính xác.");
+                if (!result || !result.ok) throw new Error(result && (result.message || result.error) || "Mã quản trị không chính xác.");
                 rememberGoogleAdminKey(key);
                 window.googleAdminVerifiedKey = key;
                 state.auth = { loggedIn: true, role: role };
