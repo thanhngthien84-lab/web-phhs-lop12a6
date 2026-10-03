@@ -5271,7 +5271,7 @@ window.openEditGroupModal = function(id) {
             status.textContent = message;
         }
 
-        function requestAdminKeyCheck(key, mode = "admin-check") {
+        function requestAdminKeyCheck(key, mode = "admin-check", attempt = 0) {
             return new Promise((resolve, reject) => {
                 const callback = "adminCheck_" + Date.now() + "_" + Math.floor(Math.random() * 1e8);
                 const script = document.createElement("script");
@@ -5284,13 +5284,24 @@ window.openEditGroupModal = function(id) {
                     script.remove();
                     window[callback] = () => {};
                     setTimeout(() => delete window[callback], 60000);
-                    if (!response) reject(new Error(failureReason === "network" ? "Không tải được phản hồi xác thực từ Google. Hãy kiểm tra mạng hoặc thử mở web bằng Chrome/Safari." : "Google chưa phản hồi sau 45 giây. Vui lòng kiểm tra mạng và thử lại."));
+                    if (!response) {
+                        const error = new Error(failureReason === "network"
+                            ? "Không kết nối được Google sau hai lần thử. Hãy thử đổi Wi-Fi/4G và mở trực tiếp link Web App để kiểm tra quyền truy cập."
+                            : "Google chưa phản hồi sau 45 giây. Vui lòng kiểm tra mạng và thử lại.");
+                        error.connectionFailure = failureReason === "network";
+                        reject(error);
+                    }
                     else resolve(response);
                 }
                 window[callback] = response => finish(response);
                 script.onerror = () => finish(null, "network");
                 script.src = GOOGLE_SHEET_API_URL + "?" + new URLSearchParams({mode, adminKey:key, callback});
                 document.head.appendChild(script);
+            }).catch(error => {
+                if (error.connectionFailure && attempt === 0) {
+                    return requestAdminKeyCheck(key, mode, 1);
+                }
+                throw error;
             });
         }
 
