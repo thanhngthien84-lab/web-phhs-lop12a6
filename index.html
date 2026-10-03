@@ -130,6 +130,8 @@
             .print\:hidden { display: none !important; }
         }
     </style>
+    <link rel="stylesheet" href="./teacher-mobile.css?v=1">
+    <script src="./teacher-mobile.js?v=1" defer></script>
 </head>
 <body>
     <!-- App Mount Points -->
@@ -441,43 +443,12 @@ function renderSidebar() {
 }
 // --- THANH ĐIỀU HƯỚNG NẰM DƯỚI ĐÁY (CHỈ HIỂN THỊ TRÊN ĐIỆN THOẠI) ---
 function renderBottomNav() {
-    let activeMenuItems = menuItems;
-    if (state.auth && state.auth.role === 'bancansu') {
-        activeMenuItems = menuItems.filter(item => ['tong-quan', 'hoc-sinh', 'thoi-khoa-bieu', 'diem-danh'].includes(item.id));
-    } else if (state.auth && state.auth.role === 'bgh') {
-        activeMenuItems = menuItems.filter(item => ['tong-quan', 'hoc-sinh', 'thoi-khoa-bieu', 'so-do-lop', 'diem-danh', 'bao-cao', 'tram-dong-hanh'].includes(item.id));
-    }
-
-    const menuHtml = activeMenuItems.map(item => {
-        const isActive = state.currentTab === item.id;
-        
-        // Căn chỉnh giao diện nút y như mẫu ảnh của cô
-        const activeClass = isActive 
-            ? "text-white bg-blue-600 shadow-[0_4px_15px_rgba(37,99,235,0.4)] transform -translate-y-1.5" 
-            : "text-[#94a3b8] hover:text-white hover:bg-white/5";
-
-        // Xử lý các nút bấm đặc biệt
-        let onclickAction = `switchTab('${item.id}')`;
-        if (item.id === 'dong-ho') onclickAction = 'openTimerDrawer()';
-        if (item.id === 'tich-diem') onclickAction = `switchTab('cai-dat'); switchSettingsTab('tich-diem');`;
-
-        return `
-        <button onclick="${onclickAction}" class="flex flex-col items-center justify-center min-w-[70px] w-20 py-2 rounded-[1rem] transition-all duration-300 ${activeClass}">
-            <i class="${isActive ? 'ph-fill' : 'ph-bold'} ${item.icon} text-[22px] mb-1"></i>
-            <span class="text-[10px] font-bold whitespace-nowrap tracking-wide">${item.label}</span>
-        </button>
-        `;
-    }).join('');
-
-    return `
-        <!-- Thẻ nav có chứa 'md:hidden' nghĩa là trên Máy tính nó sẽ hoàn toàn tàng hình -->
-        <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-[#1e1b4b] border-t border-indigo-900 shadow-[0_-10px_40px_rgba(0,0,0,0.2)] z-50 overflow-x-auto pb-1 custom-scrollbar">
-            <div class="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9IiNmZmYiLz48L3N2Zz4=')]"></div>
-            <div class="flex items-center gap-1.5 px-3 pt-2 pb-2 relative z-10 w-max min-w-full">
-                ${menuHtml}
-            </div>
-        </nav>
-    `;
+    let allowed = menuItems;
+    if (state.auth && state.auth.role === 'bancansu') allowed = menuItems.filter(item => ['tong-quan','hoc-sinh','thoi-khoa-bieu','diem-danh'].includes(item.id));
+    else if (state.auth && state.auth.role === 'bgh') allowed = menuItems.filter(item => ['tong-quan','hoc-sinh','thoi-khoa-bieu','so-do-lop','diem-danh','bao-cao','tram-dong-hanh'].includes(item.id));
+    const primary = ['tong-quan','hoc-sinh','diem-hoc-tap','diem-danh'].map(id => allowed.find(item => item.id === id)).filter(Boolean);
+    if (primary.length < 4) { const extra = allowed.find(item => !primary.includes(item)); if (extra) primary.push(extra); }
+    return '<nav class="teacher-mobile-nav print:hidden" aria-label="Điều hướng quản lý">' + primary.map(item => '<button type="button" '+(state.currentTab===item.id?'aria-current="page" ':'')+'onclick="teacherMobileNavigate(\''+item.id+'\')"><i class="ph-bold '+item.icon+'"></i><span>'+item.label+'</span></button>').join('') + '<button type="button" data-teacher-menu aria-expanded="false" aria-controls="teacher-menu-layer" onclick="openTeacherMobileMenu()"><i class="ph-bold ph-squares-four"></i><span>Thêm</span></button></nav>';
 }
 
 function renderHeader() {
@@ -496,7 +467,7 @@ function renderHeader() {
     return `
         <header class="glass sticky top-0 px-6 py-4 flex justify-between items-center z-10 flex-shrink-0 print:hidden shadow-sm">
             <div class="flex items-center gap-3">
-                <button class="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl" onclick="alert('Tính năng menu di động đang phát triển')"><i class="ph-bold ph-list text-xl"></i></button>
+                <button class="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl" data-teacher-menu aria-label="Mở menu quản lý" aria-expanded="false" aria-controls="teacher-menu-layer" onclick="openTeacherMobileMenu()"><i class="ph-bold ph-list text-xl"></i></button>
                 <h2 class="text-xl font-black text-slate-800 tracking-tight hidden md:block capitalize">${menuItems.find(m => m.id === state.currentTab)?.label || 'Bảng điều khiển'}</h2>
             </div>
             
