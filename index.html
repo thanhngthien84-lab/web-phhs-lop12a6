@@ -132,6 +132,7 @@
     </style>
     <link rel="stylesheet" href="./teacher-mobile.css?v=1">
     <script src="./teacher-mobile.js?v=1" defer></script>
+    <script src="./teacher-auth.js?v=1" defer></script>
 </head>
 <body>
     <!-- App Mount Points -->
@@ -3494,6 +3495,11 @@ setInterval(()=>{if(document.visibilityState==='visible' && state.currentTab==='
                     </div>
 
                     ${summaryHtml}
+                    <div class="mt-4 rounded-xl border border-indigo-100 bg-indigo-50 p-4 text-sm text-slate-700">
+                        <p>Muốn tự đồng bộ khi mở web: nhập mã một lần và chọn “Ghi nhớ trên thiết bị cá nhân trong 30 ngày”.</p>
+                        <button type="button" onclick="configureTeacherDevice()" class="mt-3 mr-4 min-h-[44px] font-bold text-indigo-700 underline">Kết nối và ghi nhớ thiết bị</button>
+                        <button type="button" onclick="forgetTeacherDevice()" class="mt-3 min-h-[44px] font-bold text-indigo-700 underline">Quên kết nối trên thiết bị này</button>
+                    </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
                         <button id="sheet-connection-check-button" onclick="checkGoogleSheetConnection()" class="w-full py-3.5 bg-primary text-white font-black rounded-xl shadow-md hover:bg-secondary transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait">
@@ -5247,6 +5253,7 @@ window.openEditGroupModal = function(id) {
                     sessionStorage.setItem("lop12a6_google_admin_key", window.googleAdminKey);
                 } else {
                     sessionStorage.removeItem("lop12a6_google_admin_key");
+                    if (typeof clearTeacherSavedAccess === "function") clearTeacherSavedAccess();
                 }
             } catch (error) {
                 console.warn("Không thể lưu phiên quản trị:", error);
@@ -5324,48 +5331,8 @@ window.openEditGroupModal = function(id) {
             }, 0);
         }
 
-        async function getGoogleAdminKey() {
-            // Do not start duplicate actions while authentication is in progress.
-            if (window.googleAdminAuthBusy) return "";
-            let key = window.googleAdminKey || "";
-            try { key = key || sessionStorage.getItem("lop12a6_google_admin_key") || ""; }
-            catch (error) { console.warn("Không thể đọc phiên quản trị."); }
-            if (key && window.googleAdminVerifiedKey === key) return key;
-            window.googleAdminAuthBusy = true;
-            try {
-                while (true) {
-                    if (!key) key = String(window.prompt("Nhập mã quản trị GVCN để kết nối Google Sheets:") || "").trim();
-                    if (!key) return "";
-                    setAdminAuthStatus("Đang kiểm tra mã quản trị…");
-                    let response = await requestAdminKeyCheck(key, window.googleAdminLegacyCheck ? "connection-check" : "admin-check");
-                    // Compatibility while the teacher deploys the new Code.gs.
-                    if (!response.ok && /Mã tra cứu phải gồm đúng 5 chữ số/i.test(response.message || "")) {
-                        window.googleAdminLegacyCheck = true;
-                        response = await requestAdminKeyCheck(key, "connection-check");
-                    }
-                    setAdminAuthStatus("");
-                    if (response.ok) {
-                        rememberGoogleAdminKey(key);
-                        window.googleAdminVerifiedKey = key;
-                        return key;
-                    }
-                    if (!isInvalidGoogleAdminKeyMessage(response.message)) {
-                        showToast(response.message || "Không thể kiểm tra mã quản trị.", "error");
-                        return "";
-                    }
-                    rememberGoogleAdminKey("");
-                    window.googleAdminVerifiedKey = "";
-                    key = "";
-                    // Show the error, but do not schedule a second retry prompt.
-                    showToast("Mã quản trị không chính xác.", "error");
-                }
-            } catch (error) {
-                showToast(error.message || "Không thể kiểm tra mã quản trị.", "error");
-                return "";
-            } finally {
-                setAdminAuthStatus("");
-                window.googleAdminAuthBusy = false;
-            }
+        async function getGoogleAdminKey(options = {}) {
+            return window.teacherRequestAdminKey(options);
         }
 
         window.checkGoogleSheetConnection = async function() {
@@ -6045,18 +6012,25 @@ window.openEditGroupModal = function(id) {
         };
 
         window.syncClassFromGoogle = async function(options = {}) {
-            const adminKey = await getGoogleAdminKey();
+            const adminKey = await getGoogleAdminKey(options);
             if (!adminKey) return;
 
             showToast("Đang đồng bộ danh sách học sinh...", "success");
             const callbackName = "googleClassCallback_" + Date.now();
             const script = document.createElement("script");
-            const timeout = setTimeout(() => finish({ ok: false, message: "Không thể kết nối nguồn dữ liệu." }), 15000);
+            let finished = false;
+            const timeout = setTimeout(() => finish({ ok: false, message: "Không thể kết nối nguồn dữ liệu." }), 45000);
 
-            function cleanup() { clearTimeout(timeout); delete window[callbackName]; script.remove(); }
+            function cleanup() { clearTimeout(timeout); window[callbackName] = () => {}; setTimeout(() => delete window[callbackName], 60000); script.remove(); }
             function finish(response) {
+                if (finished) return;
+                finished = true;
                 cleanup();
                 if (!response || !response.ok || !Array.isArray(response.students)) {
+                    if (response && isInvalidGoogleAdminKeyMessage(response.message)) {
+                        rememberGoogleAdminKey("");
+                        window.googleAdminVerifiedKey = "";
+                    }
                     return showToast((response && response.message) || "Không thể đồng bộ danh sách.", "error");
                 }
                 state.students = response.students.map(mergeStudentFromGoogle);
